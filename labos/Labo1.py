@@ -1,4 +1,5 @@
 from imports import np, plt
+import cupy as cp
 
 def error(x, y):
     y64 = np.float64(y)   # convertir y a float64
@@ -25,20 +26,21 @@ def matmulti(A, B):
     """
     Multiplicación de matriz por matriz o matriz por vector
     """
-    if  len(B.shape) == 1:  # vector
-        n, m = A.shape
-        result = np.zeros(n)
-        for i in range(n):
-          result[i] = sum(A[i, j] * B[j] for j in range(m))
-        return result
-    else:  # matriz
-        n, m = A.shape
-        m2, p = B.shape
-        result = np.zeros((n, p))
-        for i in range(n):
-          for j in range(p):
-            result[i, j] = sum(A[i, k] * B[k, j] for k in range(m))
-        return result
+    # if  len(B.shape) == 1:  # vector
+    #     n, m = A.shape
+    #     result = np.zeros(n)
+    #     for i in range(n):
+    #       result[i] = sum(A[i, j] * B[j] for j in range(m))
+    #     return result
+    # else:  # matriz
+    #     n, m = A.shape
+    #     m2, p = B.shape
+    #     result = np.zeros((n, p))
+    #     for i in range(n):
+    #       for j in range(p):
+    #         result[i, j] = sum(A[i, k] * B[k, j] for k in range(m))
+    #     return result
+    return cp.asnumpy(cp.dot(cp.array(A), cp.array(B)))
 
 def vector_dot(v, w):
     """

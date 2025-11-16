@@ -114,7 +114,9 @@ def pinvEcuacionesNormales(X, Y):
 
     if rangoX == p and n > p:
         XTX = lb1.matmulti(lb1.transpuesta(X), X)
+        print("Inicia Cholesky")
         L, LT = descCholesky(XTX)
+        print("Finaliza Cholesky")
         XT = lb1.transpuesta(X)
 
         U = np.zeros_like(XT)
@@ -331,7 +333,10 @@ def calcularPseudoInversa(U,S,V_transpuesta):
 
     V = V_transpuesta.T
     U_transpuesta = U.T
-
+    S_matriz = np.zeros((U.shape[0], V.shape[1]))
+    np.fill_diagonal(S_matriz, S)
+    S = S_matriz
+    print("S shape: ", S.shape)
     filas, columnas = S.shape
     S_inversa = np.zeros((columnas, filas))
 
@@ -422,9 +427,10 @@ def calculo_W_SVD(V,S_inversa,U_transpuesta, Y):
     pseudo_inv = lb1.matmulti(producto, U1_T) # V₁ Σ₁⁻¹ U₁ᵀ
 
 
+    print("pseudo_inv shape: ", pseudo_inv.shape)
     # 5) Cálculo final de W:
     #     W = Y X⁺ = Y (V₁ Σ₁⁻¹ U₁ᵀ)
-    W = lb1.matmulti(Y, pseudo_inv)                   # Y * (V₁ Σ₁⁻¹ U₁ᵀ)
+    W = lb1.matmulti(transpuesta(Y), pseudo_inv)                   # Y * (V₁ Σ₁⁻¹ U₁ᵀ)
 
     return W
 

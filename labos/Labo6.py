@@ -1,4 +1,5 @@
 from imports import np, plt,lb3,lb1
+import cupy as cp
 
 def metpot2k(A, tol=1e-15, K=1000):
     n = A.shape[0]
@@ -19,6 +20,7 @@ def metpot2k(A, tol=1e-15, K=1000):
     Av = lb1.matmulti(A, vectorSiguiente)
     autovalor = lb1.vector_dot(vectorSiguiente, Av) / lb1.vector_dot(vectorSiguiente, vectorSiguiente)
     return vectorSiguiente, autovalor, cuentas
+
 
 def diagRH(A, tol=1e-15, K=1000):
     n = A.shape[0]
@@ -59,4 +61,5 @@ def diagRH(A, tol=1e-15, K=1000):
         S[1:, 1:] = S_prima
         S = lb1.matmulti(H_v1, S)
         return S, D
+
 
