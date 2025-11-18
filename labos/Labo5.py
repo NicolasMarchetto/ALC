@@ -61,6 +61,7 @@ def QR_con_HH(A,tol=1e-12):
     Q = np.eye(m)
     R = A.copy()
     for i in range(0, n - 1):
+      print(f"Computado: {i+1} de {n-1}", end="\r", flush=True)
       norm_2 = lb3.norma(R[i:, i],2)
       if(norm_2 < tol):
         R[i:, i] = 0;
@@ -74,7 +75,7 @@ def QR_con_HH(A,tol=1e-12):
       Hi = np.block([[np.eye(i), np.zeros((i, m-i))], [np.zeros((m-i, i)), Hi]])
       R = np.dot(Hi, R);
       Q = np.dot(Q, Hi.T);
-
+    print("Householder completado")
     return Q,R
 
 
@@ -89,6 +90,7 @@ def calculaQR(A,metodo='RH',tol=1e-12):
     Si el metodo no esta entre las opciones, retorna None
     """
     if(metodo == 'RH'):
+      print("Iniciando Householder")
       return QR_con_HH(A,tol)
     elif(metodo == 'GS'):
       return QR_con_GS(A,tol)

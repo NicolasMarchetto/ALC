@@ -1,7 +1,7 @@
 from imports import *
 from labos.Labo1 import matmulti, transpuesta
 from labos.Labo4 import inversa
-
+import cupy as cp
 """
 Módulo: alc.py
 Trabajo Práctico - Álgebra Lineal Computacional
@@ -110,37 +110,52 @@ def pinvEcuacionesNormales(X, Y):
     W: pesos (m x n)
     """
     n, p = X.shape
-    rangoX = rango(X)
+    rangoX = cp.linalg.matrix_rank(cp.array(X))
+    print("Rango de X:", rangoX)
 
     if rangoX == p and n > p:
         XTX = lb1.matmulti(lb1.transpuesta(X), X)
         print("Inicia Cholesky")
-        L, LT = descCholesky(XTX)
+        print("XTX shape:",XTX.shape)
+        L = cp.linalg.cholesky(cp.array(XTX))
+        LT = L.T
+        print("L shape:",L.shape)
         print("Finaliza Cholesky")
         XT = lb1.transpuesta(X)
-
+        print("XT shape: ", XT.shape)
         U = np.zeros_like(XT)
+        print("U shape: ", U.shape)
+        print("Y shape: ", Y.shape)
         for col in range(n):
+            print("Columna ", col)
             b = XT[:, col]
             z = lb4.res_tri(L, b, inferior=True)
             u = lb4.res_tri(LT, z, inferior=False)
             U[:, col] = u
-
+    
         W = lb1.matmulti(Y, U)
 
     elif rangoX == n and n < p:
         XXT = lb1.matmulti(X, lb1.transpuesta(X))
-        L, LT = descCholesky(XXT)
+        print("XXT shape:",XXT.shape)
+        print("Inicia Cholesky")
+        L = cp.linalg.cholesky(cp.array(XXT))
+        print("L shape:",L.shape)
+        LT = L.T
+        print("Finaliza Cholesky")
         XT = lb1.transpuesta(X)
-
-        V = np.zeros_like(XT)
+        print("XT shape: ", X.shape)
+        V = np.zeros_like(X)
+        print("V shape: ", V.shape)
+        print("Y shape: ", Y.shape)
         for col in range(n):
-            b = XT[:, col]
+            print("Columna ", col)
+            b = X[:, col]
             z = lb4.res_tri(L, b, inferior=True)
             v = lb4.res_tri(LT, z, inferior=False)
             V[:, col] = v
-
-        W = lb1.matmulti(Y, V)
+        
+        W = lb1.matmulti(Y, transpuesta(V))
 
     elif rangoX == n and n == p:
         XInv = lb4.inversa(X)
@@ -193,10 +208,30 @@ def pinvHouseHolder(Q, R, Y):
     Retorna:
         W : pesos que minimizan ||Y - W X||²
     """
-    R_T = transpuesta(R)
-    R_T_inversa = inversa(R_T)
-    X_p = matmulti(Q,R_T_inversa)
-    return matmulti(Y, X_p)
+    # Q R = X.T con  X de dim {n x p}, n < p por lo tanto X.T es de dim {p x n} y Q es de dim {p x p} y R de dim {p x n}
+    # Como R es de dim {p x n} con p < n, R no es invertible. por lo tanto se reduce las dimensiones de R.T tal que R sea cuadrada
+    n = R.shape[1]
+    R_reducida = R[:n, :]  # R de dim {p x n} -> R_reducida de dim {n x n}
+    Q_reducida = Q[:, :n]  # Q de dim {p x p} -> Q_reducida de dim {p x n}
+
+    print('R shape: ', R.shape," -> R reducida shape: ", R_reducida.shape)
+    print('Q shape: ', Q.shape," -> Q reducida shape: ", Q_reducida.shape)
+ 
+    R_T = transpuesta(R_reducida)  # R.T de dim {p x p}
+    R_T_inv = np.zeros_like(R_reducida)  # (R.T)^-1 de dim {p x p}
+
+    print('Q reducida shape x R transpuesta inversa shape: ', Q_reducida.shape," x ", R_T_inv.shape)
+    print('W shape: ', Y.shape," x (", Q_reducida.shape[0],",", R_T_inv.shape[1],")")
+
+    for fila in range(R_T.shape[0]):
+
+        print(f'Fila {fila} / {R_T.shape[0]}', end='\r', flush=True)
+
+        R_T_inv[fila, :] = lb4.res_tri(R_T, np.eye(R_T.shape[0])[fila, :], inferior=True)
+    
+    X_plus = lb1.matmulti(Q_reducida, R_T_inv)  # X+ de dim {p x n}
+    W = lb1.matmulti(Y, X_plus)
+    return W, X_plus
 
 
 def pinvGramSchmidt(Q, R, Y):
@@ -333,7 +368,7 @@ def calcularPseudoInversa(U,S,V_transpuesta):
 
     V = V_transpuesta.T
     U_transpuesta = U.T
-    S_matriz = np.zeros((U.shape[0], V.shape[1]))
+    S_matriz = np.zeros((U.shape[0], V.shape[0]))
     np.fill_diagonal(S_matriz, S)
     S = S_matriz
     print("S shape: ", S.shape)

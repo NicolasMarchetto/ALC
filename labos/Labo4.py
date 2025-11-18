@@ -1,4 +1,5 @@
 from imports import np, plt,lb1
+import cupy as cp
 
 def calculaLU(A):
     """
@@ -36,20 +37,26 @@ def calculaLU(A):
 
 
 def res_tri(L, b, inferior=True):
-  n = L.shape[0]
-  x = np.zeros(n)
-  if  inferior:
-    for i in range(n):
-      x[i] += b[i] / L[i, i]
-      for j in range(i):
-        x[i] -= (L[i, j] * x[j])/L[i, i]
-  else:
-    for i in range(n-1,-1,-1):
-      x[i] += b[i] / L[i, i]
-      for j in range(n-1,i,-1):
-        x[i] -= (L[i, j] * x[j])/L[i, i]
+    n = L.shape[0]
+    b = cp.array(b)
+    L = cp.array(L)
+    x = cp.zeros(n)
 
-  return x
+    if inferior:  
+        for i in range(n):
+            s = b[i]
+            # cp.dot evita el bucle interno
+            if i > 0:
+                s -= cp.dot(L[i, :i], x[:i])
+            x[i] = s / L[i, i]
+    else: 
+        for i in range(n - 1, -1, -1):
+            s = b[i]
+            if i < n - 1:
+                s -= cp.dot(L[i, i+1:], x[i+1:])
+            x[i] = s / L[i, i]
+
+    return cp.asnumpy(x)
 
 def inversa(A):
   L,U,nops = calculaLU(A)
