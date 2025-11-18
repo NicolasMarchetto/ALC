@@ -231,6 +231,8 @@ def pinvHouseHolder(Q, R, Y):
     
     X_plus = lb1.matmulti(Q_reducida, R_T_inv)  # X+ de dim {p x n}
     W = lb1.matmulti(Y, X_plus)
+    print('W shape: ', W.shape)
+    print('X_plus shape: ', X_plus.shape)
     return W, X_plus
 
 
