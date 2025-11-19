@@ -209,30 +209,26 @@ def pinvHouseHolder(Q, R, Y):
         W : pesos que minimizan ||Y - W X||²
     """
     # Q R = X.T con  X de dim {n x p}, n < p por lo tanto X.T es de dim {p x n} y Q es de dim {p x p} y R de dim {p x n}
-    # Como R es de dim {p x n} con p < n, R no es invertible. por lo tanto se reduce las dimensiones de R.T tal que R sea cuadrada
-    n = R.shape[1]
-    R_reducida = R[:n, :]  # R de dim {p x n} -> R_reducida de dim {n x n}
-    Q_reducida = Q[:, :n]  # Q de dim {p x p} -> Q_reducida de dim {p x n}
+    # Luego X+ = (X.T X)^{-1} X.T = (R.T R)^{-1} R.T Q.T = M_inv R.T Q.T, donde M_inv = (R.T R)^{-1}
 
-    print('R shape: ', R.shape," -> R reducida shape: ", R_reducida.shape)
-    print('Q shape: ', Q.shape," -> Q reducida shape: ", Q_reducida.shape)
- 
-    R_T = transpuesta(R_reducida)  # R.T de dim {p x p}
-    R_T_inv = np.zeros_like(R_reducida)  # (R.T)^-1 de dim {p x p}
-
-    print('Q reducida shape x R transpuesta inversa shape: ', Q_reducida.shape," x ", R_T_inv.shape)
-    print('W shape: ', Y.shape," x (", Q_reducida.shape[0],",", R_T_inv.shape[1],")")
-
-    for fila in range(R_T.shape[0]):
-
-        print(f'Fila {fila} / {R_T.shape[0]}', end='\r', flush=True)
-
-        R_T_inv[fila, :] = lb4.res_tri(R_T, np.eye(R_T.shape[0])[fila, :], inferior=True)
-    
-    X_plus = lb1.matmulti(Q_reducida, R_T_inv)  # X+ de dim {p x n}
-    W = lb1.matmulti(Y, X_plus)
-    print('W shape: ', W.shape)
-    print('X_plus shape: ', X_plus.shape)
+    R_transpuesta = transpuesta(R)
+    M = lb1.matmulti(R_transpuesta, R)  # M = R.T R
+    print("M shape:", M.shape)
+    print("Calculando inversa de M (cholesky)")
+    L= cp.linalg.cholesky(cp.array(M))
+    LT = transpuesta(L)
+    print('M_inv shape:', M.shape, ', R shape:', R.shape, ', Q shape:', Q.shape)
+    M_inv = np.zeros_like(M)
+    for i in range(M.shape[0]):
+        print(f'Calculando columna {i+1} de {M.shape[0]} de M_inv', end='\r', flush=True)
+        b = np.zeros(M.shape[0])
+        b[i] = 1
+        y = lb4.res_tri(L, b, inferior=True)
+        x = lb4.res_tri(LT, y, inferior=False) 
+        M_inv[:, i] = x
+    X_plus = lb1.matmulti((lb1.matmulti(M_inv, transpuesta(R))), transpuesta(Q))  # X+ = M_inv R.T Q.T
+    print('X_plus shape:', X_plus.shape)
+    W = lb1.matmulti(Y, transpuesta(X_plus))
     return W, X_plus
 
 
@@ -280,19 +276,29 @@ def esPseudoInversa(X, pX, tol=1e-8):
     """
 
     # Condición 1: X * pX * X ≈ X
-    if not lb1.sonIguales(lb1.matmulti(lb1.matmulti(X , pX) , X), X, tol):
+    X_1 = lb1.matmulti(lb1.matmulti(X , pX) , X)
+    if not lb1.sonIguales(X_1, X, tol):
+        print("No cumplio que X * pX * X ≈ X")
+        delta_X = np.abs(X_1 - X)
+        max_delta = np.max(delta_X)
+        idx_error = np.unravel_index(np.argmax(delta_X), delta_X.shape)
+        print(f"Max delta: {max_delta} at index {idx_error}")
         return False
 
     # Condición 2: pX * X * pX ≈ pX
-    if not lb1.sonIguales(lb1.matmulti(lb1.matmulti(pX ,X) , pX), pX, tol):
+    X_2 = lb1.matmulti(lb1.matmulti(pX ,X) , pX)
+    if not lb1.sonIguales(X_2, pX, tol):
+        print("No cumplio que pX * X * pX ≈ pX")
         return False
 
     # Condición 3: (X * pX)^T ≈ X * pX
     if not lb1.sonIguales(lb1.transpuesta(lb1.matmulti(X,pX)), lb1.matmulti(X,pX), tol):
+        print("No cumplio que (X * pX)^T ≈ X * pX")
         return False
 
     # Condición 4: (pX * X)^T ≈ pX * X
     if not lb1.sonIguales(lb1.transpuesta(lb1.matmulti(pX,X)), lb1.matmulti(pX,X), tol):
+        print("No cumplio que (pX * X)^T ≈ pX * X")
         return False
 
     return True
@@ -334,6 +340,7 @@ def descCholesky(A):
     Calcula la descomposición de Cholesky A = L L^T
     usando la LDV si A es simétrica definida positiva.
     """
+    print("Iniciando Cholesky")
     Lprima, D, _ = lb4.calculaLDV(A)
 
     if not lb4.esSDP(A):
@@ -344,6 +351,7 @@ def descCholesky(A):
 
     raizD = np.zeros_like(D)
     for i in range(D.shape[0]):
+        print(f"Calculando raizD fila {i+1} de {D.shape[0]}", end="\r", flush=True)
         raizD[i, i] = np.sqrt(D[i, i])
 
     L = lb1.matmulti(Lprima, raizD)

@@ -9,6 +9,7 @@ def calculaLU(A):
 
     nops cuenta las multiplicaciones y sumas/restas hechas durante la eliminación.
     """
+    print("Calculando LU")
     if A is None:
       return None, None, 0
 
@@ -20,6 +21,7 @@ def calculaLU(A):
     nops = -n  #Esto es porque en el programa cuento como una resta poner el 0 y no lo deberia contar
 
     for k in range(n-1):
+        print(f"Calculando fila {k+1} de {n-1}", end="\r", flush=True)
         pivot = U[k, k]
         if np.abs(pivot) < 1e-08: #Si todos los pivotes de U son distintos a 0, det(U) != 0
             return None, None, 0
@@ -92,14 +94,18 @@ def diagonal_de_matriz(A):
 
 
 def calculaLDV(A):
+    print("Calculando LDV")
     n = A.shape[0]
     L,U,nops = calculaLU(A)
     if L is None:
       return None,None,None
     D = np.eye(n)
     for i in range(n):
+      print(f"Calculando D fila {i+1} de {n}", end="\r", flush=True)
       D[i][i] = U[i][i]
+
     for i in range(n):
+      print(f"Calculando U fila {i+1} de {n}", end="\r", flush=True)
       for j in range(n):
         U[i, j] = U[i,j] / D[i, i]
     return L,D,U
@@ -118,10 +124,12 @@ def esSDP(A,atol=1e-8):
     la factorización LDV.
     """
     L,D,V = calculaLDV(A)
+    print("Verificando si A es SDP")
     iguales = True
     if L is None:
         return False
     for i in range(A.shape[0]):
+      print(f"Verificando simetría fila {i+1} de {A.shape[0]}", end="\r", flush=True)
       for j in range(A.shape[1]):
         if not lb1.sonIguales(A[i,j], lb1.transpuesta(A)[i,j],atol):
           iguales = False
